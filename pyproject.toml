@@ -1,0 +1,27 @@
+[tool.poetry]
+name = "tnlm"
+version = "0.1.0"
+description = "Non-local means on time series images"
+authors = ["Brendan Moloney <moloney@ohsu.edu>"]
+license = "MIT"
+build = 'build.py'
+
+[tool.poetry.scripts]
+tnlm_denoise = 'tnlm.tnlm:app'
+
+[tool.poetry.dependencies]
+python = ">=3.8,<3.12"
+numpy = "^1.23.2"
+Cython = "^0.29.32"
+scipy = "^1.9.0"
+typer = "^0.6.1"
+nibabel = "^4.0.1"
+setuptools = "^65.0.1"
+
+[tool.poetry.dev-dependencies]
+black = "^22.6.0"
+ipython = "^8.4.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
