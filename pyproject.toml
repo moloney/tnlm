@@ -11,7 +11,7 @@ generate-setup-file = true
 
 [tool.poetry.scripts]
 tnlm_denoise = 'tnlm.tnlm:denoise_app'
-tnlm_estimate = 'tnlm.tnlm:estimate_app'
+tnlm_thresh = 'tnlm.tnlm:thresh_app'
 
 [tool.poetry.dependencies]
 python = ">=3.8,<3.12"
