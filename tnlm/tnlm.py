@@ -58,9 +58,9 @@ def estimate_bias_and_noise(
 
 
 class MergeStrategy(enum.Enum):
-    MAX = 0
-    MIDDLE = 1
-    MEAN = 2
+    MAX = "max"
+    MIDDLE = "middle"
+    MEAN = "mean"
 
 
 def make_thresholds(
@@ -181,8 +181,8 @@ def make_thresholds_files(
     merge_strategy: MergeStrategy = MergeStrategy.MAX,
     out_dir: Optional[Path] = None,
     skip_spatial: bool = False,
-    bias_scale = 3.5,
-    noise_scale = 7.0,
+    bias_scale: float = 3.5,
+    noise_scale: float = 7.0,
     verbose: bool = False,
     debug: bool = False,
 ):
