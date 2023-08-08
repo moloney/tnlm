@@ -96,8 +96,8 @@ def make_thresholds(
         noise[mask == 0] = robust_mean(noise)
     # Reduce outliers with spatial filtering
     if not skip_spatial:
-        bias = gaussian_filter(median_filter(bias), 1.0)
-        noise = gaussian_filter(median_filter(noise), 1.0)
+        bias = gaussian_filter(median_filter(bias, 3), 1.0)
+        noise = gaussian_filter(median_filter(noise, 3), 1.0)
     return bias * bias_scale, noise * noise_scale 
 
 
