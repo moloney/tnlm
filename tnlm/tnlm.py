@@ -68,7 +68,7 @@ def make_thresholds(
     mask: Optional[np.ndarray] = None,
     radius: int = 3,
     n_best: int = 3,
-    merge_strategy: MergeStrategy = MergeStrategy.MAX,
+    merge_strategy: MergeStrategy = "max",
     skip_spatial: bool = False,
     bias_scale = 3.5,
     noise_scale = 7.0,
