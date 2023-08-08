@@ -2,6 +2,7 @@ import os
 import sys
 
 from Cython.Build import cythonize
+from distutils.command.build_ext import build_ext
 
 # use cythonize to build the extensions
 modules = ["tnlm/_tnlm.pyx",]
@@ -13,4 +14,5 @@ def build(setup_kwargs):
 
     setup_kwargs.update({
         'ext_modules' : extensions,
+        'cmdclass': {'build_ext': build_ext}
     })
