@@ -255,6 +255,9 @@ def denoise_tnlm_files(
             noise_nii = nb.Nifti1Image(noise_thresh, in_img.affine)
             nb.save(noise_nii, out_path.parent / f"noise_thresh_{in_path.name}")
             del noise_nii
+    else:
+        bias_thresh = np.asarray(nb.load(bias_thresh).dataobj)
+        noise_thresh = np.asarray(nb.load(noise_thresh).dataobj)
     log.info("Starting denoising...")
     out_data = denoise_tnlm(in_data, bias_thresh, noise_thresh, radius, mask)
     log.info("Done")
