@@ -14,7 +14,7 @@ tnlm_denoise = 'tnlm.tnlm:denoise_app'
 tnlm_thresh = 'tnlm.tnlm:thresh_app'
 
 [tool.poetry.dependencies]
-python = ">=3.8,<3.12"
+python = ">=3.7,<3.12"
 numpy = "^1.23.2"
 Cython = "^0.29.32"
 scipy = "^1.9.0"
