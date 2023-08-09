@@ -15,9 +15,9 @@ tnlm_thresh = 'tnlm.tnlm:thresh_app'
 
 [tool.poetry.dependencies]
 python = ">=3.7,<3.12"
-numpy = "^1.23.2"
+numpy = ">=1.21"
 Cython = "^0.29.32"
-scipy = "^1.9.0"
+scipy = ">=1.7.0"
 typer = "^0.6.1"
 nibabel = "^4.0.1"
 setuptools = "^65.0.1"
