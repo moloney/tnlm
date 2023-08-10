@@ -141,7 +141,7 @@ def denoise_tnlm(
         raise ValueError("Provided 'out' array is wrong shape")
     accum_dtype = accum_dtype_map[in_data.dtype]
     accum_buf = np.empty(in_data.shape[-1], accum_dtype_map[in_data.dtype])
-    log.debug(f"Using {accum_dtype=} for accumulation buffer")
+    log.debug(f"Using {accum_dtype} for accumulation buffer")
     return np.asarray(
         temporal_nl_means(
             in_data, bias_thresh, noise_thresh, mask, out, accum_buf, radius
