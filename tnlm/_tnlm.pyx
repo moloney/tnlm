@@ -93,6 +93,7 @@ cpdef estimate_neigh_bias_and_noise(
                                             noise_buf[buf_idx] = var
                                             break
                                 n_neigh += 1
+                    # Handle case where we have less neighbors than n_best
                     if n_neigh < n_best:
                         max_bias = max_noise = -1
                         for buf_idx in range(n_neigh, n_best):
