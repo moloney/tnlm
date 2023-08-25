@@ -1,7 +1,10 @@
 import os, sys, enum, logging
 from pathlib import Path
 from typing import Optional, Tuple
-from typing_extensions import Annotated
+try:
+    from typing import Annotated
+except ImportError:
+    from typing_extensions import Annotated
 
 import numpy as np
 import nibabel as nb
