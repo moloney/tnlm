@@ -95,6 +95,9 @@ def make_thresholds(
             assert merge_strategy == MergeStrategy.MEAN
             bias = np.mean(bias, axis=-1)
             noise = np.mean(noise, axis=-1)
+    else:
+        bias = bias[..., 0]
+        noise = noise[..., 0]
     # Voxels with no (unmasked) neighbors are set to zero
     bias[bias == -1] = 0
     noise[noise == -1] = 0
