@@ -38,6 +38,7 @@ def estimate_bias_and_noise(
     mask: Optional[np.ndarray] = None,
     radius: int = 5,
     n_best: int = 3,
+    win_size: int = 0,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Estimate local bias / noise from similar neigboring voxels in `in_data`
 
@@ -51,7 +52,7 @@ def estimate_bias_and_noise(
     else:
         mask = mask.astype(np.uint8, copy=False)
     best_bias, best_noise = estimate_neigh_bias_and_noise(
-        in_data.astype(np.float32), mask, radius, n_best
+        in_data.astype(np.float32), mask, radius, n_best, win_size
     )
     # TODO: Handle -1 results here somehow
     best_bias = np.asarray(best_bias)
@@ -72,6 +73,7 @@ def make_thresholds(
     mask: Optional[np.ndarray] = None,
     radius: int = 3,
     n_best: int = 3,
+    win_size: int = 0,
     merge_strategy: MergeStrategy = MergeStrategy.MAX,
     skip_spatial: bool = False,
     bias_scale: float = 3.5,
@@ -82,7 +84,7 @@ def make_thresholds(
     Calls the lower level `estimate_bias_and_noise` function and applies some filtering
     and heurstics.
     """
-    bias, noise = estimate_bias_and_noise(in_data, mask, radius, n_best)
+    bias, noise = estimate_bias_and_noise(in_data, mask, radius, n_best, win_size)
     if n_best > 1:
         if merge_strategy in (MergeStrategy.MAX, MergeStrategy.MIDDLE):
             if merge_strategy == MergeStrategy.MAX:
@@ -98,7 +100,8 @@ def make_thresholds(
     else:
         bias = bias[..., 0]
         noise = noise[..., 0]
-    # Voxels with no (unmasked) neighbors are set to zero
+    # Voxels with no (unmasked) neighbors are set to zero, then all zero voxels are set
+    # to the average
     bias[bias == -1] = 0
     noise[noise == -1] = 0
     if mask is not None:
@@ -106,8 +109,12 @@ def make_thresholds(
         noise[mask == 0] = robust_mean(noise)
     # Reduce outliers with spatial filtering
     if not skip_spatial:
-        bias = gaussian_filter(median_filter(bias, 3), 1.0)
-        noise = gaussian_filter(median_filter(noise, 3), 1.0)
+        # TODO: Might make sense to do some clipping before spatial filtering
+        median_width = 3
+        if any(s == 1 for s in in_data.shape[:3]):
+            median_width = 5
+        bias = gaussian_filter(median_filter(bias, median_width), 1.0)
+        noise = gaussian_filter(median_filter(noise, median_width), 1.0)
     return bias * bias_scale, noise * noise_scale
 
 
@@ -126,6 +133,7 @@ def denoise_tnlm(
     bias_thresh: Optional[np.ndarray] = None,
     noise_thresh: Optional[np.ndarray] = None,
     radius: int = 5,
+    win_size: int = 0,
     mask: Optional[np.ndarray] = None,
     out: Optional[np.ndarray] = None,
 ):
@@ -139,7 +147,7 @@ def denoise_tnlm(
     else:
         mask = mask.astype(np.uint8, copy=False)
     if bias_thresh is None or noise_thresh is None:
-        threshes = make_thresholds(in_data, mask)
+        threshes = make_thresholds(in_data, mask, win_size=win_size)
         if bias_thresh is None:
             bias_thresh = threshes[0]
         if noise_thresh is None:
@@ -154,7 +162,7 @@ def denoise_tnlm(
     log.debug(f"Using {accum_dtype} for accumulation buffer")
     return np.asarray(
         temporal_nl_means(
-            in_data, bias_thresh, noise_thresh, mask, out, accum_buf, radius
+            in_data, bias_thresh, noise_thresh, mask, out, accum_buf, radius, win_size
         )
     )
 
@@ -192,6 +200,9 @@ def make_thresholds_files(
     local_top: Annotated[
         int, typer.Option(help="Number of best neighbor results to track per voxel")
     ] = 3,
+    win_size: Annotated[
+        int, typer.Option(help="Size of window to compute bias over")
+    ] = 0,
     merge_strategy: Annotated[
         MergeStrategy,
         typer.Option(help="How to merge best neighbor results for each voxel"),
@@ -224,12 +235,15 @@ def make_thresholds_files(
     in_data = np.asanyarray(in_img.dataobj)
     if mask is not None:
         mask = np.asarray(nb.load(mask).dataobj)
+        if len(mask.shape) == 2:
+            mask = np.reshape(mask, mask.shape + (1,))
     log.info("Starting voxelwise estimation...")
     bias_thresh, noise_thresh = make_thresholds(
         in_data,
         mask,
         radius,
         local_top,
+        win_size,
         merge_strategy,
         skip_spatial,
         bias_scale,
@@ -257,6 +271,7 @@ def denoise_tnlm_files(
         Optional[Path], typer.Option(help="Per voxel noise threshold")
     ] = None,
     radius: Annotated[int, typer.Option(help="Neighborhood radius")] = 5,
+    win_size: Annotated[int, typer.Option(help="Window size for bias")] = 0,
     mask: Annotated[
         Optional[Path], typer.Option(help="Exclude voxels outside this mask")
     ] = None,
@@ -278,13 +293,15 @@ def denoise_tnlm_files(
     in_data = np.asanyarray(in_img.dataobj)
     if mask is not None:
         mask = np.asarray(nb.load(mask).dataobj)
+        if len(mask.shape) == 2:
+            mask = np.reshape(mask, mask.shape + (1,))
     if out_path is None:
         out_path = in_path.parent / f"denoised_{in_path.name}"
     if bias_thresh is None or noise_thresh is None:
         if not bias_thresh is None or not noise_thresh is None:
             error_console("Either provide both thresholds or none")
         log.info("Computing thresholds...")
-        bias_thresh, noise_thresh = make_thresholds(in_data, mask)
+        bias_thresh, noise_thresh = make_thresholds(in_data, mask, win_size=win_size)
         if save_thresholds:
             bias_nii = nb.Nifti1Image(bias_thresh, in_img.affine)
             nb.save(bias_nii, out_path.parent / f"bias_thresh_{in_path.name}")
@@ -296,7 +313,7 @@ def denoise_tnlm_files(
         bias_thresh = np.asarray(nb.load(bias_thresh).dataobj)
         noise_thresh = np.asarray(nb.load(noise_thresh).dataobj)
     log.info("Starting denoising...")
-    out_data = denoise_tnlm(in_data, bias_thresh, noise_thresh, radius, mask)
+    out_data = denoise_tnlm(in_data, bias_thresh, noise_thresh, radius, win_size, mask)
     log.info("Done")
     out_img = nb.Nifti1Image(out_data, in_img.affine)
     nb.save(out_img, out_path)
